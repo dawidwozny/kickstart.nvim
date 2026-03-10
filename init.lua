@@ -261,12 +261,32 @@ require('lazy').setup({
     config = function()
       require('smart-splits').setup {
         at_edge = 'stop',
+        multiplexer_integration = 'wezterm',
       }
 
-      vim.keymap.set('n', '<C-h>', require('smart-splits').move_cursor_left,  { desc = 'Move to left split' })
-      vim.keymap.set('n', '<C-j>', require('smart-splits').move_cursor_down,  { desc = 'Move to below split' })
-      vim.keymap.set('n', '<C-k>', require('smart-splits').move_cursor_up,    { desc = 'Move to above split' })
-      vim.keymap.set('n', '<C-l>', require('smart-splits').move_cursor_right, { desc = 'Move to right split' })
+      -- Fast pane navigation using escape sequences instead of wezterm CLI
+      -- (wezterm cli process spawn is slow on Windows)
+      local nav_directions = {
+        h = { vim_dir = 'h', wez_b64 = 'TGVmdA==' },  -- base64("Left")
+        j = { vim_dir = 'j', wez_b64 = 'RG93bg==' },  -- base64("Down")
+        k = { vim_dir = 'k', wez_b64 = 'VXA=' },      -- base64("Up")
+        l = { vim_dir = 'l', wez_b64 = 'UmlnaHQ=' },  -- base64("Right")
+      }
+
+      local function navigate(key)
+        local d = nav_directions[key]
+        local cur_win = vim.fn.winnr()
+        vim.cmd('wincmd ' .. d.vim_dir)
+        if vim.fn.winnr() == cur_win then
+          vim.fn.chansend(vim.v.stderr,
+            string.format('\x1b]1337;SetUserVar=WEZTERM_NAVIGATE=%s\x07', d.wez_b64))
+        end
+      end
+
+      vim.keymap.set('n', '<C-h>', function() navigate('h') end, { desc = 'Move to left split' })
+      vim.keymap.set('n', '<C-j>', function() navigate('j') end, { desc = 'Move to below split' })
+      vim.keymap.set('n', '<C-k>', function() navigate('k') end, { desc = 'Move to above split' })
+      vim.keymap.set('n', '<C-l>', function() navigate('l') end, { desc = 'Move to right split' })
 
       vim.keymap.set('n', '<A-h>', require('smart-splits').resize_left,  { desc = 'Resize split left' })
       vim.keymap.set('n', '<A-j>', require('smart-splits').resize_down,  { desc = 'Resize split down' })
