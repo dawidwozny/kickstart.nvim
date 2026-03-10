@@ -207,10 +207,7 @@ vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' }
 --  Use CTRL+<hjkl> to switch between windows
 --
 --  See `:help wincmd` for a list of all window commands
-vim.keymap.set('n', '<C-h>', '<C-w><C-h>', { desc = 'Move focus to the left window' })
-vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right window' })
-vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
-vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
+--  NOTE: Ctrl+hjkl navigation is handled by smart-splits.nvim (see lua/custom/plugins/init.lua)
 
 -- NOTE: Some terminals have colliding keymaps or are not able to send distinct keycodes
 -- vim.keymap.set("n", "<C-S-h>", "<C-w>H", { desc = "Move window to the left" })
@@ -257,6 +254,26 @@ rtp:prepend(lazypath)
 require('lazy').setup({
   -- NOTE: Plugins can be added via a link or github org/name. To run setup automatically, use `opts = {}`
   { 'NMAC427/guess-indent.nvim', opts = {} },
+
+  {
+    'mrjones2014/smart-splits.nvim',
+    lazy = false,
+    config = function()
+      require('smart-splits').setup {
+        at_edge = 'stop',
+      }
+
+      vim.keymap.set('n', '<C-h>', require('smart-splits').move_cursor_left,  { desc = 'Move to left split' })
+      vim.keymap.set('n', '<C-j>', require('smart-splits').move_cursor_down,  { desc = 'Move to below split' })
+      vim.keymap.set('n', '<C-k>', require('smart-splits').move_cursor_up,    { desc = 'Move to above split' })
+      vim.keymap.set('n', '<C-l>', require('smart-splits').move_cursor_right, { desc = 'Move to right split' })
+
+      vim.keymap.set('n', '<A-h>', require('smart-splits').resize_left,  { desc = 'Resize split left' })
+      vim.keymap.set('n', '<A-j>', require('smart-splits').resize_down,  { desc = 'Resize split down' })
+      vim.keymap.set('n', '<A-k>', require('smart-splits').resize_up,    { desc = 'Resize split up' })
+      vim.keymap.set('n', '<A-l>', require('smart-splits').resize_right, { desc = 'Resize split right' })
+    end,
+  },
 
   -- Alternatively, use `config = function() ... end` for full control over the configuration.
   -- If you prefer to call `setup` explicitly, use:
@@ -879,6 +896,9 @@ require('lazy').setup({
       vim.api.nvim_create_autocmd('FileType', {
         callback = function(args)
           local buf, filetype = args.buf, args.match
+
+          -- Skip filetypes that use their own built-in syntax (e.g. :Tutor)
+          if filetype == 'tutor' then return end
 
           local language = vim.treesitter.language.get_lang(filetype)
           if not language then return end
