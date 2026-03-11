@@ -48,13 +48,18 @@ return {
 
       -- You can provide additional configuration to the handlers,
       -- see mason-nvim-dap README for more information
-      handlers = {},
+      handlers = {
+        function(config)
+          require('mason-nvim-dap').default_setup(config)
+        end,
+      },
 
       -- You'll need to check that you have the required things installed
       -- online, please don't ask me how to install them :)
       ensure_installed = {
         -- Update this to ensure that you have the debuggers for the langs you want
         'delve',
+        'js-debug-adapter',
       },
     }
 
@@ -106,5 +111,18 @@ return {
         detached = vim.fn.has 'win32' == 0,
       },
     }
+
+    -- JavaScript/TypeScript debugging
+    for _, lang in ipairs { 'typescript', 'javascript' } do
+      dap.configurations[lang] = {
+        {
+          type = 'pwa-node',
+          request = 'launch',
+          name = 'Launch file',
+          program = '${file}',
+          cwd = '${workspaceFolder}',
+        },
+      }
+    end
   end,
 }
